@@ -1,0 +1,65 @@
+# Auto-deploy: every push to main is pulled, built and restarted on the server
+# by the self-hosted runner installed there. Setup steps: .github/SERVER_SETUP.md
+name: Deploy to server
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    # Skipped until the DEPLOY_DIR repository variable is set
+    if: ${{ vars.DEPLOY_DIR != '' }}
+    runs-on: [self-hosted, Windows]
+    env:
+      DEPLOY_DIR: ${{ vars.DEPLOY_DIR }}
+      PM2_NAMES: ${{ vars.PM2_NAMES }}
+      HEALTH_URL: ${{ vars.HEALTH_URL }}
+    steps:
+      - name: Pull latest code into the server folder
+        shell: powershell
+        env:
+          GIT_TOKEN: ${{ github.token }}
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}.git
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $dir = $env:DEPLOY_DIR
+          function Git([string]$gitArgs) {
+              cmd /c "git -c safe.directory=* -C `"$dir`" $gitArgs 2>&1"
+              if ($LASTEXITCODE -ne 0) { throw "git command failed (exit $LASTEXITCODE)" }
+          }
+
+          if (-not (Test-Path (Join-Path $dir '.git'))) {
+              # First deploy: back up the existing folder (minus node_modules), then make it a git working copy
+              if (Test-Path $dir) {
+                  $backup = "$($dir.TrimEnd('\'))_backup_$(Get-Date -Format yyyyMMdd_HHmmss)"
+                  robocopy $dir $backup /E /XD node_modules /NFL /NDL /NJH /NJS /NP | Out-Null
+                  if ($LASTEXITCODE -ge 8) { throw "Backup of $dir failed (robocopy exit $LASTEXITCODE)" }
+                  Write-Host "Backed up existing folder to $backup"
+              } else {
+                  New-Item -ItemType Directory -Path $dir | Out-Null
+              }
+              Git "init -q"
+              Git "remote add origin $env:REPO_URL"
+          }
+
+          $b64 = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("x-access-token:$env:GIT_TOKEN"))
+          Write-Host "::add-mask::$b64"
+          $prev = cmd /c "git -c safe.directory=* -C `"$dir`" rev-parse --verify -q HEAD 2>nul"
+          Git "-c http.extraheader=`"AUTHORIZATION: basic $b64`" fetch -q --depth 1 origin main"
+          # Only tracked files change; .env, appsettings.json, uploads and node_modules are left alone
+          Git "reset -q --hard FETCH_HEAD"
+          [IO.File]::AppendAllText($env:GITHUB_ENV, "PREV_SHA=$prev`n")
+          Git "log -1 --format=`"Deployed %h - %s`""
+
+      - name: Install, build and restart
+        shell: powershell
+        run: '& (Join-Path $env:DEPLOY_DIR ".github\deploy.ps1")'
