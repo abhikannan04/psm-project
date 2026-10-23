@@ -1,0 +1,36 @@
+# ---- Dependencies ----
+node_modules/
+
+# ---- Secrets (use the .env.example templates) ----
+.env
+.env.*
+!.env.example
+appsettings.json
+!appsettings.example.json
+
+# ---- Build output ----
+dist/
+dist-ssr/
+build/
+bin/
+obj/
+.vs/
+
+# ---- Logs ----
+logs/
+*.log
+
+# ---- User uploads / runtime data ----
+uploads/
+
+# ---- Archives & OS / editor junk ----
+*.zip
+*.lnk
+.DS_Store
+Thumbs.db
+~$*
+.idea/
+**/.claude/settings.local.json
+
+# ---- Original project rules ----
+node_modules/

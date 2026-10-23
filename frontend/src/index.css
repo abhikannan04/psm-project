@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Hide scrollbar for department dropdown */
+.hide-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Custom dropdown specific styles */
+.custom-dropdown {
+  position: relative;
+}
+
+.custom-dropdown-options {
+  position: absolute;
+  z-index: 1000;
+  width: 100%;
+  max-height: 15rem;
+  overflow-y: auto;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Near-deadline red blinking animation */
+@keyframes blink-red {
+  0%, 100% {
+    background-color: rgba(239, 68, 68, 0.15);
+    border-left-color: rgb(239, 68, 68);
+  }
+  50% {
+    background-color: rgba(239, 68, 68, 0.35);
+    border-left-color: rgb(185, 28, 28);
+  }
+}
+
+@keyframes blink-red-text {
+  0%, 100% {
+    color: rgb(239, 68, 68);
+    opacity: 1;
+  }
+  50% {
+    color: rgb(185, 28, 28);
+    opacity: 0.6;
+  }
+}
+
+.near-deadline-row {
+  animation: blink-red 1.5s ease-in-out infinite;
+  border-left: 4px solid rgb(239, 68, 68);
+}
+
+.near-deadline-text {
+  animation: blink-red-text 1.5s ease-in-out infinite;
+  font-weight: 700;
+}
+
+.near-deadline-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.675rem;
+  font-weight: 600;
+  animation: blink-red-text 1.5s ease-in-out infinite;
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* Dark mode adjustments for near-deadline */
+.dark .near-deadline-row {
+  animation-name: blink-red-dark;
+}
+
+@keyframes blink-red-dark {
+  0%, 100% {
+    background-color: rgba(239, 68, 68, 0.1);
+    border-left-color: rgb(248, 113, 113);
+  }
+  50% {
+    background-color: rgba(239, 68, 68, 0.25);
+    border-left-color: rgb(239, 68, 68);
+  }
+}
