@@ -23,9 +23,8 @@ Run 'frontend' 'npm run build'
 # ---- Restart the app(s) ----
 if (-not $env:PM2_NAMES) { throw "Set the repository variable PM2_NAMES to the PM2 app name(s) (see 'pm2 list')" }
 foreach ($name in $env:PM2_NAMES.Split(',')) {
-    Run '.' "pm2 restart $($name.Trim()) --update-env"
+    Run '.' "pm2 restart $($name.Trim())"
 }
-Run '.' 'pm2 save'
 
 # ---- Optional health check ----
 if ($env:HEALTH_URL) {
