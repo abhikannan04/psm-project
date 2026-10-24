@@ -1,7 +1,10 @@
 # Auto-deploy to the server
 
-Every `git push` to `main` is deployed automatically: the server pulls the new code,
-runs `npm install`, rebuilds the frontend and restarts the app in PM2.
+Deploys are **button-only**: `git push` just saves your code on GitHub. When you click
+**Actions -> Deploy to server -> Run workflow**, the server pulls the new code, runs `npm install`
+(at low priority), rebuilds the frontend and restarts **only this app** in PM2.
+Before touching anything it checks that `DEPLOY_DIR` is a real project folder and that every
+`PM2_NAMES` entry runs from inside it, so other apps on the server are never affected.
 Server-only files (`.env`, `appsettings.json`, `uploads/`, `node_modules/`) are never touched.
 
 PM2 runs `backend/server.js`, which also serves `frontend/dist`. Database migrations are **not** run automatically; run `npx knex migrate:latest` in `backend\` yourself when you add one.
@@ -47,7 +50,8 @@ git add -A
 git commit -m "describe your change"
 git push
 ```
-Watch it under **Actions**: green = live on the server, red = open the run to see which step failed
+Then, at a quiet time, deploy: **Actions -> Deploy to server -> Run workflow**.
+Watch it there: green = live on the server, red = open the run to see which step failed
 (the app keeps running the previous version if the build fails).
 
 ## Rollback

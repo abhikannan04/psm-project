@@ -1,10 +1,10 @@
-# Auto-deploy: every push to main is pulled, built and restarted on the server
-# by the self-hosted runner installed there. Setup steps: .github/SERVER_SETUP.md
+# Deploy to server: pulls main, builds and restarts this app on the server
+# (run by the self-hosted runner installed there). Setup steps: .github/SERVER_SETUP.md
 name: Deploy to server
 
+# Button-only: runs only when started from Actions -> Deploy to server -> Run workflow.
+# (To deploy on every push instead, add:  push: { branches: [main] })
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 concurrency:
