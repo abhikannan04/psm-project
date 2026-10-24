@@ -2,6 +2,8 @@
 # (called by .github/workflows/deploy.yml). Installs dependencies, builds and restarts PM2.
 $ErrorActionPreference = 'Stop'
 $root = $env:DEPLOY_DIR
+# Low priority so npm install / builds never slow down the other apps on this server
+(Get-Process -Id $PID).PriorityClass = 'BelowNormal'
 
 function Run([string]$dir, [string]$cmd) {
     Write-Host ">> [$dir] $cmd"

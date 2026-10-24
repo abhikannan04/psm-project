@@ -31,7 +31,34 @@ jobs:
           REPO_URL: ${{ github.server_url }}/${{ github.repository }}.git
         run: |
           $ErrorActionPreference = 'Stop'
-          $dir = $env:DEPLOY_DIR
+          # Low priority so a deploy never slows down the other apps on this server (child processes inherit it)
+          (Get-Process -Id $PID).PriorityClass = 'BelowNormal'
+
+          # ---- Safety checks: stop before touching anything if the settings look wrong ----
+          $dir = "$env:DEPLOY_DIR".TrimEnd('\')
+          if (-not [IO.Path]::IsPathRooted($dir) -or ($dir -split '\\').Count -lt 2 -or -not (Test-Path $dir -PathType Container)) {
+              throw "DEPLOY_DIR '$env:DEPLOY_DIR' must be an existing project folder (not a drive root)"
+          }
+          if (-not $env:PM2_NAMES) { throw "Set the repository variable PM2_NAMES to the PM2 app name(s)" }
+          $json = (cmd /c "pm2 jlist 2>nul") -join ''
+          $m = [regex]::Match($json, '\[\s*(\{|\])')
+          if (-not $m.Success) { throw "Could not read 'pm2 jlist' - is PM2 running for this user?" }
+          Add-Type -AssemblyName System.Web.Extensions
+          $ser = New-Object System.Web.Script.Serialization.JavaScriptSerializer
+          $ser.MaxJsonLength = [int]::MaxValue
+          $apps = @($ser.DeserializeObject($json.Substring($m.Index)) | ForEach-Object {
+              [pscustomobject]@{ name = [string]$_['name']; script = [string]$_['pm2_env']['pm_exec_path'] }
+          })
+          foreach ($name in $env:PM2_NAMES.Split(',')) {
+              $name = $name.Trim()
+              if ($name -eq 'all' -or $name -match '^\d+$') { throw "PM2_NAMES must list app names, not 'all' or ids ('$name')" }
+              $app = @($apps | Where-Object { $_.name -eq $name })
+              if ($app.Count -ne 1) { throw "PM2 app '$name' not found (or not unique) in 'pm2 list'" }
+              if (-not $app[0].script.StartsWith("$dir\", [StringComparison]::OrdinalIgnoreCase)) {
+                  throw "PM2 app '$name' runs $($app[0].script), which is outside $dir - refusing to touch it"
+              }
+              Write-Host "Safety check OK: PM2 app '$name' runs from inside $dir"
+          }
           function Git([string]$gitArgs) {
               cmd /c "git -c safe.directory=* -C `"$dir`" $gitArgs 2>&1"
               if ($LASTEXITCODE -ne 0) { throw "git command failed (exit $LASTEXITCODE)" }
