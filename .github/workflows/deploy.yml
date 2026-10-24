@@ -37,8 +37,15 @@ jobs:
               if ($LASTEXITCODE -ne 0) { throw "git command failed (exit $LASTEXITCODE)" }
           }
 
-          if (-not (Test-Path (Join-Path $dir '.git'))) {
-              # First deploy: back up the existing folder (minus node_modules), then make it a git working copy
+          $isNew = -not (Test-Path (Join-Path $dir '.git'))
+          $origin = ''
+          if (-not $isNew) {
+              $url = cmd /c "git -c safe.directory=* -C `"$dir`" remote get-url origin 2>nul"
+              if ($url) { $origin = "$url".Trim() }
+          }
+          if ($origin -ne $env:REPO_URL) {
+              # First deploy from this repo (plain folder, or a git folder linked to another repo):
+              # back up the existing folder (minus node_modules), then point it at this repo
               if (Test-Path $dir) {
                   $backup = "$($dir.TrimEnd('\'))_backup_$(Get-Date -Format yyyyMMdd_HHmmss)"
                   robocopy $dir $backup /E /XD node_modules /NFL /NDL /NJH /NJS /NP | Out-Null
@@ -47,8 +54,9 @@ jobs:
               } else {
                   New-Item -ItemType Directory -Path $dir | Out-Null
               }
-              Git "init -q"
-              Git "remote add origin $env:REPO_URL"
+              if ($isNew) { Git "init -q" }
+              if ($origin) { Git "remote set-url origin $env:REPO_URL" } else { Git "remote add origin $env:REPO_URL" }
+              Write-Host "Linked $dir to $env:REPO_URL (was: $(if ($origin) { $origin } else { 'not a git folder' }))"
           }
 
           $b64 = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("x-access-token:$env:GIT_TOKEN"))
