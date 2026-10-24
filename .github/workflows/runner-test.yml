@@ -1,0 +1,22 @@
+# Harmless connection test for the self-hosted runner: read-only, deploys nothing, restarts nothing.
+name: Runner test (read-only)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: [self-hosted, Windows]
+    timeout-minutes: 5
+    steps:
+      - name: Show where the runner is (read-only)
+        shell: powershell
+        run: |
+          Write-Host "Runner picked up the job on $env:COMPUTERNAME as $env:USERDOMAIN\$env:USERNAME"
+          Write-Host "git:  $(git --version)"
+          Write-Host "node: $(node --version)"
+          $apps = (cmd /c "pm2 jlist 2>nul") -join ''
+          Write-Host "PM2 reachable: $([bool]($apps -match '\[\s*(\{|\])'))"
