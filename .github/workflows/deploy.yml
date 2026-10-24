@@ -81,8 +81,13 @@ jobs:
               } else {
                   New-Item -ItemType Directory -Path $dir | Out-Null
               }
-              if ($isNew) { Git "init -q" }
-              if ($origin) { Git "remote set-url origin $env:REPO_URL" } else { Git "remote add origin $env:REPO_URL" }
+              if (-not $isNew) {
+                  # Start a fresh .git (the old one is in the backup). Reusing it would make the reset
+                  # below delete files the OLD repo tracked but this one does not (e.g. .env, uploads).
+                  Remove-Item -LiteralPath (Join-Path $dir '.git') -Recurse -Force
+              }
+              Git "init -q"
+              Git "remote add origin $env:REPO_URL"
               Write-Host "Linked $dir to $env:REPO_URL (was: $(if ($origin) { $origin } else { 'not a git folder' }))"
           }
 
